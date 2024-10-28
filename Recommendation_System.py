@@ -8,7 +8,7 @@ from sklearn.cluster import DBSCAN
 import random
 import re
 
-movies = pd.read_csv('', lineterminator='\n')
+movies = pd.read_csv('movies_data.csv', lineterminator='\n')
 
 # Initialize label encoder
 label_encoder = LabelEncoder()
