@@ -10,6 +10,7 @@ from Recommendation_System import (
 
 # Load the movies data
 movies = pd.read_csv('movies_data.csv', lineterminator='\n')
+movies['Primary_Genre'].fillna(movies['Genre_First_Word'], inplace=True)
 
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
 similarity_matrix = cosine_similarity(X)
