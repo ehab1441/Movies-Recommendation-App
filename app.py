@@ -37,7 +37,7 @@ def get_era_years(era_input):
 years = get_era_years(era_input)
 
 # Button to trigger movie recommendations
-if st.sidebar.button("Recommend a movie"):
+if st.button("Recommend a movie"):
     # Get encoded titles based on user inputs
     encoded_titles = get_encoded_title_by_features(
         genre,
