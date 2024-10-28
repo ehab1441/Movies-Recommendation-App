@@ -69,7 +69,7 @@ if st.button("Recommend a movie"):
             st.write(f"Average Rating: {movie_info['Vote_Average']} ⭐")
             st.write(f"Release Year: {movie_info['Release_Year']}")
             st.write(f"Genre: {movie_info['Genre']}")
-            st.header("Want another movie?"
+            st.header("Want another movie?")
             st.header("Press the button Again!")
             
         else:
