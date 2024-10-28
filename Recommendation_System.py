@@ -10,114 +10,101 @@ import re
 
 movies = pd.read_csv('movies_data.csv', lineterminator='\n')
 
-# Initialize label encoder
-label_encoder = LabelEncoder()
+def extract_years(df):
+    df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce')
+    df['Release_Year'] = df['Release_Year'].dt.year
+    df.drop(columns=['Release_Year'], inplace=True)
+    df['Release_Year'] = df['Release_Year'].astype(int)
+    return df
 
-# Transformer classes
-class ExtractYearTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, date_col='Release_Date'):
-        self.date_col = date_col
+def map_language_codes_to_full_names(df):
+    language_map = {
+        'en': 'English', 'ja': 'Japanese', 'fr': 'French', 'hi': 'Hindi', 'es': 'Spanish',
+        'ru': 'Russian', 'de': 'German', 'th': 'Thai', 'ko': 'Korean', 'tr': 'Turkish',
+        'cn': 'Chinese', 'zh': 'Chinese', 'it': 'Italian', 'pt': 'Portuguese', 'ml': 'Malayalam',
+        'pl': 'Polish', 'fi': 'Finnish', 'no': 'Norwegian', 'da': 'Danish', 'id': 'Indonesian',
+        'sv': 'Swedish', 'nl': 'Dutch', 'te': 'Telugu', 'sr': 'Serbian', 'is': 'Icelandic',
+        'ro': 'Romanian', 'tl': 'Tagalog', 'fa': 'Persian', 'uk': 'Ukrainian', 'nb': 'Norwegian Bokmål',
+        'eu': 'Basque', 'lv': 'Latvian', 'ar': 'Arabic', 'el': 'Greek', 'cs': 'Czech', 'ms': 'Malay',
+        'bn': 'Bengali', 'ca': 'Catalan', 'la': 'Latin', 'ta': 'Tamil', 'hu': 'Hungarian', 
+        'he': 'Hebrew', 'et': 'Estonian'
+    }
+    df['Original_Language_Full'] = df['Original_Language'].map(language_map)
+    df.drop(columns=['Original_Language'], inplace=True)
+    return df
 
-    def fit(self, X, y=None):
-        return self
+def categorize_year(df):
+    bins = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020, df['Release_Year'].max()]
+    labels = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
+    df['Release_Era'] = pd.cut(df['Release_Year'], bins=bins, labels=labels, include_lowest=True)
+    df['Release_Era'] = df['Release_Era'].astype(int)
+    return df
 
-    def transform(self, X):
-        X = X.copy()
-        X[self.date_col] = pd.to_datetime(X[self.date_col], errors='coerce')
-        X['Release_Year'] = X[self.date_col].dt.year
-        X.drop(columns=[self.date_col], inplace=True)
-        return X
+def encode_language(df, label_encoder):
+    df['Language_Encoded'] = label_encoder.fit_transform(df['Original_Language_Full'])
+    return df
 
-class LanguageMappingTransformer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
+def preprocess_genres(df):
+    df['Genre_First_Word'] = df['Genre'].str.split().str[0].str.replace(r'[^\w\s]', '', regex=True)
+    genre_dummies = df['Genre'].str.get_dummies(sep=',').astype(int)
+    
+    dbscan = DBSCAN(eps=0.5, min_samples=5)
+    df['Genre_Cluster'] = dbscan.fit_predict(genre_dummies)
 
-    def transform(self, X):
-        X = X.copy()
-        language_map = {
-            'en': 'English', 'ja': 'Japanese', 'fr': 'French', 'hi': 'Hindi', 'es': 'Spanish',
-            'ru': 'Russian', 'de': 'German', 'th': 'Thai', 'ko': 'Korean', 'tr': 'Turkish',
-            'cn': 'Chinese', 'zh': 'Chinese', 'it': 'Italian', 'pt': 'Portuguese', 'ml': 'Malayalam',
-            'pl': 'Polish', 'fi': 'Finnish', 'no': 'Norwegian', 'da': 'Danish', 'id': 'Indonesian',
-            'sv': 'Swedish', 'nl': 'Dutch', 'te': 'Telugu', 'sr': 'Serbian', 'is': 'Icelandic',
-            'ro': 'Romanian', 'tl': 'Tagalog', 'fa': 'Persian', 'uk': 'Ukrainian', 'nb': 'Norwegian Bokmål',
-            'eu': 'Basque', 'lv': 'Latvian', 'ar': 'Arabic', 'el': 'Greek', 'cs': 'Czech', 'ms': 'Malay',
-            'bn': 'Bengali', 'ca': 'Catalan', 'la': 'Latin', 'ta': 'Tamil', 'hu': 'Hungarian', 
-            'he': 'Hebrew', 'et': 'Estonian'
-        }
-        X['Original_Language_Full'] = X['Original_Language'].map(language_map)
-        X.drop(columns=['Original_Language'], inplace=True)
-        return X
+     cluster_genre_map = {}
 
-class YearCategorizerTransformer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
+    for cluster in df['Genre_Cluster'].unique():
+        genres_in_cluster = genre_dummies[df['Genre_Cluster'] == cluster].sum()
+        primary_genre = genres_in_cluster.idxmax()
+        cluster_genre_map[cluster] = primary_genre
+    df['Primary_Genre'] = df['Genre_Cluster'].map(cluster_genre_map)
 
-    def transform(self, X):
-        X = X.copy()
-        bins = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020, X['Release_Year'].max()]
-        labels = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
-        X['Release_Era'] = pd.cut(X['Release_Year'], bins=bins, labels=labels, include_lowest=True)
-        X['Release_Era'] = X['Release_Era'].astype(int)
-        return X
+    genre_mapping = {
+    ' Adventure': 'Adventure',
+    ' Mystery': 'Mystery',
+    ' Thriller': 'Thriller',
+    ' Comedy': 'Comedy',
+    ' Crime': 'Crime',
+    'Science Fiction': 'Science Fiction',
+    ' Action': 'Action',
+    ' Drama': 'Drama',
+    ' Horror': 'Horror',
+    ' Fantasy': 'Fantasy',
+    ' War': 'War',
+    ' Romance': 'Romance',
+    ' Animation': 'Animation',
+    ' History': 'History',
+    ' Music': 'Music',
+    ' Family': 'Family',
+    ' Western': 'Western',
+    ' TV Movie': 'TV Movie',
+    ' Documentary': 'Documentary'
+   }
 
-class EncodeColumnsTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        self.label_encoder = LabelEncoder()
+    df['Primary_Genre'] = df['Primary_Genre'].map(genre_mapping)
+    
+    # Handle missing Primary_Genre
+    df['Primary_Genre'].fillna(df['Genre_First_Word'], inplace=True)
+    return df
 
-    def fit(self, X, y=None):
-        self.label_encoder.fit(X['Original_Language_Full'])
-        return self
+def encode_primary_genre(df, label_encoder):
+    df['Genre_Encoded'] = label_encoder.fit_transform(df['Primary_Genre'])
+    return df
 
-    def transform(self, X):
-        X = X.copy()
-        X['Language_Encoded'] = self.label_encoder.transform(X['Original_Language_Full'])
-        X['Genre_First_Word'] = X['Genre'].str.split().str[0].str.replace(r'[^\w\s]', '', regex=True)
-        return X
+def pipeline(df):
+    label_encoder = LabelEncoder()
+    
+    df = extract_years(df)
+    df = map_language_codes_to_full_names(df)
+    df = categorize_year(df)
+    df = encode_language(df, label_encoder)
+    df = preprocess_genres(df)
+    df = encode_primary_genre(df, label_encoder)
+    
+    return df
 
-class EncodeGenreTransformer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X = X.copy()
-        genre_dummies = X['Genre'].str.get_dummies(sep=',').astype(int)
-        dbscan = DBSCAN(eps=0.5, min_samples=5)
-        genre_clusters = dbscan.fit_predict(genre_dummies)
-        X['Genre_Cluster'] = genre_clusters
-        
-        cluster_genre_map = {}
-        for cluster in X['Genre_Cluster'].unique():
-            genres_in_cluster = genre_dummies[X['Genre_Cluster'] == cluster].sum()
-            primary_genre = genres_in_cluster.idxmax()
-            cluster_genre_map[cluster] = primary_genre
-        
-        X['Primary_Genre'] = X['Genre_Cluster'].map(cluster_genre_map)
-        X['Primary_Genre'].fillna(X['Genre_First_Word'], inplace=True)
-
-        genre_mapping = {
-            ' Adventure': 'Adventure', ' Mystery': 'Mystery', ' Thriller': 'Thriller', ' Comedy': 'Comedy',
-            ' Crime': 'Crime', 'Science Fiction': 'Science Fiction', ' Action': 'Action', ' Drama': 'Drama',
-            ' Horror': 'Horror', ' Fantasy': 'Fantasy', ' War': 'War', ' Romance': 'Romance', 
-            ' Animation': 'Animation', ' History': 'History', ' Music': 'Music', ' Family': 'Family',
-            ' Western': 'Western', ' TV Movie': 'TV Movie', ' Documentary': 'Documentary'
-        }
-        
-        X['Primary_Genre'] = X['Primary_Genre'].map(genre_mapping)
-        X['Genre_Encoded'] = label_encoder.fit_transform(X['Primary_Genre'])
-        return X
-
-# Construct the pipeline
-movies_pipeline = Pipeline([
-    ('extract_years', ExtractYearTransformer()),
-    ('map_languages', LanguageMappingTransformer()),
-    ('categorize_year', YearCategorizerTransformer()),
-    ('encode_columns', EncodeColumnsTransformer()),
-    ('encode_genre', EncodeGenreTransformer())
-])
-
-# Apply the pipeline to the movies DataFrame
-movies = movies_pipeline.fit_transform(movies)
+# Run the pipeline
+movies = pipeline(movies)
 
 
 
