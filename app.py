@@ -60,7 +60,8 @@ if st.button("Recommend a movie"):
 
         if recommended_movies:
             # Get movie info for the selected movie title
-            movie_info = get_specific_movie_details_by_encoded_title(selected_movie_title, movies)
+            columns_to_retrieve = ['Title', 'Overview', 'Release_Year', 'Genre', 'Vote_Average', 'Poster_Url']
+            movie_info = get_specific_movie_details_by_encoded_title(selected_movie_title, movies,columns_to_retrieve)
 
             st.image(movie_info['Poster_Url'])
             st.subheader(f"🎬 {movie_info['Title']}")
