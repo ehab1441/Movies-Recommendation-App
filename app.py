@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
 import random
-from Recommendation_System import recommend_movies, get_encoded_title_by_features, get_specific_movie_details_by_encoded_title
+from Recommendation_System import (
+    recommend_movies,
+    get_encoded_title_by_features,
+    get_specific_movie_details_by_encoded_title,
+)
 
 movies = pd.read_csv('movies_data.csv', lineterminator='\n')
 
