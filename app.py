@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+from sklearn.metrics.pairwise import cosine_similarity
 from Recommendation_System import (
     recommend_movies,
     get_encoded_title_by_features,
