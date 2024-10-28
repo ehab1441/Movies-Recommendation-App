@@ -9,7 +9,7 @@ import random
 import re
 
 # Load the movies data (correcting the path)
-movies = pd.read_csv(r"C:\Users\mehab\OneDrive\Desktop\movies_data.csv", lineterminator='\n')
+movies = pd.read_csv(r"movies_data.csv", lineterminator='\n')
 
 def extract_years(df):
     df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce').dt.year
