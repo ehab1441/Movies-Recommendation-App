@@ -11,6 +11,8 @@ import re
 # Load the movies data (correcting the path)
 movies = pd.read_csv(r"movies_data.csv", lineterminator='\n')
 
+movies['Primary_Genre'].fillna(movies['Genre'].str.split().str[0].str.replace(r'[^\w\s]', '', regex=True), inplace = True)
+
 # Preparing data for similarity calculation
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
 similarity_matrix = cosine_similarity(X)
