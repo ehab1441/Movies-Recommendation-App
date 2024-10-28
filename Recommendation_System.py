@@ -9,10 +9,10 @@ import random
 import re
 
 # Load the movies data (correcting the path)
-movies = pd.read_csv(r"movies_data.csv", lineterminator='\n')
+movies = pd.read_csv(r"/kaggle/input/9000-movies-dataset/mymoviedb.csv", lineterminator='\n')
 
 def extract_years(df):
-    df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce').dt.year
+    df['Release_Year'] = pd.to_datetime(df['Release_Date'], errors='coerce').dt.year
     return df
 
 def map_language_codes_to_full_names(df):
