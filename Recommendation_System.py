@@ -8,7 +8,7 @@ from sklearn.cluster import DBSCAN
 import random
 import re
 
-movies = pd.read_csv('"C:\Users\mehab\OneDrive\Desktop\movies_data.csv"', lineterminator='\n')
+movies = pd.read_csv('movies_data.csv', lineterminator='\n')
 
 def extract_years(df):
     df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce')
