@@ -8,13 +8,11 @@ from sklearn.cluster import DBSCAN
 import random
 import re
 
-movies = pd.read_csv('movies_data.csv', lineterminator='\n')
+# Load the movies data (correcting the path)
+movies = pd.read_csv(r"C:\Users\mehab\OneDrive\Desktop\movies_data.csv", lineterminator='\n')
 
 def extract_years(df):
-    df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce')
-    df['Release_Year'] = df['Release_Year'].dt.year
-    df.drop(columns=['Release_Year'], inplace=True)
-    df['Release_Year'] = df['Release_Year'].astype(int)
+    df['Release_Year'] = pd.to_datetime(df['Release_Year'], errors='coerce').dt.year
     return df
 
 def map_language_codes_to_full_names(df):
@@ -36,8 +34,7 @@ def map_language_codes_to_full_names(df):
 def categorize_year(df):
     bins = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020, df['Release_Year'].max()]
     labels = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
-    df['Release_Era'] = pd.cut(df['Release_Year'], bins=bins, labels=labels, include_lowest=True)
-    df['Release_Era'] = df['Release_Era'].astype(int)
+    df['Release_Era'] = pd.cut(df['Release_Year'], bins=bins, labels=labels, include_lowest=True).astype(int)
     return df
 
 def encode_language(df, label_encoder):
@@ -47,43 +44,26 @@ def encode_language(df, label_encoder):
 def preprocess_genres(df):
     df['Genre_First_Word'] = df['Genre'].str.split().str[0].str.replace(r'[^\w\s]', '', regex=True)
     genre_dummies = df['Genre'].str.get_dummies(sep=',').astype(int)
-    
+
     dbscan = DBSCAN(eps=0.5, min_samples=5)
     df['Genre_Cluster'] = dbscan.fit_predict(genre_dummies)
 
-     cluster_genre_map = {}
-
+    cluster_genre_map = {}
     for cluster in df['Genre_Cluster'].unique():
         genres_in_cluster = genre_dummies[df['Genre_Cluster'] == cluster].sum()
-        primary_genre = genres_in_cluster.idxmax()
+        primary_genre = genres_in_cluster.idxmax() if not genres_in_cluster.empty else None
         cluster_genre_map[cluster] = primary_genre
     df['Primary_Genre'] = df['Genre_Cluster'].map(cluster_genre_map)
 
     genre_mapping = {
-    ' Adventure': 'Adventure',
-    ' Mystery': 'Mystery',
-    ' Thriller': 'Thriller',
-    ' Comedy': 'Comedy',
-    ' Crime': 'Crime',
-    'Science Fiction': 'Science Fiction',
-    ' Action': 'Action',
-    ' Drama': 'Drama',
-    ' Horror': 'Horror',
-    ' Fantasy': 'Fantasy',
-    ' War': 'War',
-    ' Romance': 'Romance',
-    ' Animation': 'Animation',
-    ' History': 'History',
-    ' Music': 'Music',
-    ' Family': 'Family',
-    ' Western': 'Western',
-    ' TV Movie': 'TV Movie',
-    ' Documentary': 'Documentary'
-   }
+        'Adventure': 'Adventure', 'Mystery': 'Mystery', 'Thriller': 'Thriller', 'Comedy': 'Comedy', 
+        'Crime': 'Crime', 'Science Fiction': 'Science Fiction', 'Action': 'Action', 'Drama': 'Drama', 
+        'Horror': 'Horror', 'Fantasy': 'Fantasy', 'War': 'War', 'Romance': 'Romance', 
+        'Animation': 'Animation', 'History': 'History', 'Music': 'Music', 'Family': 'Family', 
+        'Western': 'Western', 'TV Movie': 'TV Movie', 'Documentary': 'Documentary'
+    }
 
     df['Primary_Genre'] = df['Primary_Genre'].map(genre_mapping)
-    
-    # Handle missing Primary_Genre
     df['Primary_Genre'].fillna(df['Genre_First_Word'], inplace=True)
     return df
 
@@ -93,21 +73,16 @@ def encode_primary_genre(df, label_encoder):
 
 def pipeline(df):
     label_encoder = LabelEncoder()
-    
     df = extract_years(df)
     df = map_language_codes_to_full_names(df)
     df = categorize_year(df)
     df = encode_language(df, label_encoder)
     df = preprocess_genres(df)
     df = encode_primary_genre(df, label_encoder)
-    
     return df
 
 # Run the pipeline
 movies = pipeline(movies)
-
-
-
 
 # Preparing data for similarity calculation
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
@@ -131,8 +106,8 @@ def recommend_movies(movie_title_encoded, similarity_matrix, movie_titles, top_n
         key=lambda x: x[1],
         reverse=True
     )
-    recommendations = [movie_titles[i[0]] for i in similar_movies[0:]]  
-    return recommendations[:top_n]
+    recommendations = [movie_titles[i[0]] for i in similar_movies[1:top_n+1]]  # Skip the first item (itself)
+    return recommendations
 
 def get_encoded_title_by_features(genre, language, release_years, movies_df):
     """
@@ -157,8 +132,7 @@ if isinstance(encoded_titles, np.ndarray) and encoded_titles.size > 0:
     print("Selected Encoded Title:", selected_title)
 
     # Get recommendations
-    recommended_movies = recommend_movies(selected_title, similarity_matrix, movie_titles, top_n=1000)
-    recommended_movies = random.sample(recommended_movies, min(10, len(recommended_movies)))
+    recommended_movies = recommend_movies(selected_title, similarity_matrix, movie_titles, top_n=10)
     print("Recommended Movies:", recommended_movies)
 
     def get_specific_movie_details_by_encoded_title(title_encoded, movies_df, columns):
@@ -170,45 +144,46 @@ if isinstance(encoded_titles, np.ndarray) and encoded_titles.size > 0:
     
     seen_movies_file = 'seen_movies.txt'
 
-try:
-    with open(seen_movies_file, 'r') as file:
-        seen_movies = set(file.read().splitlines())
-except FileNotFoundError:
-    seen_movies = set()
+    try:
+        with open(seen_movies_file, 'r') as file:
+            seen_movies = set(file.read().splitlines())
+    except FileNotFoundError:
+        seen_movies = set()
 
-# Filter out seen movies from the recommendations
-unseen_movies = [movie for movie in recommended_movies if movie not in seen_movies]
+    # Filter out seen movies from the recommendations
+    unseen_movies = [movie for movie in recommended_movies if movie not in seen_movies]
 
-# Check if there are unseen movies left
-if unseen_movies:
-    # Randomly select one unseen movie
-    selected_movie = random.choice(unseen_movies)
+    # Check if there are unseen movies left
+    if unseen_movies:
+        # Randomly select one unseen movie
+        selected_movie = random.choice(unseen_movies)
 
-    # Get the movie details
-    columns_to_retrieve = ['Title', 'Overview', 'Release_Year', 'Genre', 'Vote_Average', 'Poster_Url']
-    movie_info = get_specific_movie_details_by_encoded_title(selected_movie, movies, columns_to_retrieve)
+        # Get the movie details
+        columns_to_retrieve = ['Title', 'Overview', 'Release_Year', 'Genre', 'Vote_Average', 'Poster_Url']
+        movie_info = get_specific_movie_details_by_encoded_title(selected_movie, movies, columns_to_retrieve)
 
-    # Print the specific movie details
-    if movie_info is not None:
-        print("\n" + "=" * 40)
-        print(f"🎬 {movie_info['Title']}")
-        print("=" * 40)
-        print(f"Overview: {movie_info['Overview']}")
-        print(f"Release Year: {movie_info['Release_Year']}")
-        print(f"Genre: {movie_info['Genre']}")
-        print(f"Average Rating: {movie_info['Vote_Average']} ⭐")
-        print(f"Poster URL: {movie_info['Poster_Url']}")
-        print("=" * 40 + "\n")
+        # Print the specific movie details
+        if movie_info is not None:
+            print("\n" + "=" * 40)
+            print(f"🎬 {movie_info['Title']}")
+            print("=" * 40)
+            print(f"Overview: {movie_info['Overview']}")
+            print(f"Release Year: {movie_info['Release_Year']}")
+            print(f"Genre: {movie_info['Genre']}")
+            print(f"Average Rating: {movie_info['Vote_Average']} ⭐")
+            print(f"Poster URL: {movie_info['Poster_Url']}")
+            print("=" * 40 + "\n")
 
-        # Mark this movie as seen
-        seen_movies.add(selected_movie)
+            # Mark this movie as seen
+            seen_movies.add(selected_movie)
 
-        # Save the updated seen movies to the file
-        with open(seen_movies_file, 'w') as file:
-            file.write("\n".join(seen_movies))
+            # Save the updated seen movies to the file
+            with open(seen_movies_file, 'w') as file:
+                file.write("\n".join(seen_movies))
+        else:
+            print(f"🚫 No movie found with Title Encoded '{selected_movie}'.")
     else:
-        print(f"🚫 No movie found with Title Encoded '{selected_movie}'.")
+        print("🎉 You've seen all recommended movies! Generating new recommendations...")
+        # Here you can implement logic to fetch new recommendations or refresh the movie list.
 else:
-    print("🎉 You've seen all recommended movies! Generating new recommendations...")
-    # Here you can implement logic to fetch new recommendations or refresh the movie list.
-
+    print("No movies found matching the criteria.")
