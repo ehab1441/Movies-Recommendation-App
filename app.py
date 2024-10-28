@@ -10,6 +10,10 @@ from Recommendation_System import (
 # Load the movies data
 movies = pd.read_csv('movies_data.csv', lineterminator='\n')
 
+X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
+similarity_matrix = cosine_similarity(X)
+movie_titles = movies['Title'].values
+
 st.set_page_config(
     page_title="Movie Recommendation App",
     page_icon="🎬",
