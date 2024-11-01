@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import DBSCAN
 import random
@@ -10,7 +8,6 @@ import re
 
 # Load the movies data (correcting the path)
 movies = pd.read_csv(r"movies_data.csv", lineterminator='\n')
-movies['Primary_Genre'].fillna(movies['Genre_First_Word'], inplace=True)
 
 # Preparing data for similarity calculation
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
@@ -20,6 +17,15 @@ movie_titles = movies['Title'].values
 def recommend_movies(movie_title_encoded, similarity_matrix, movie_titles, top_n=5):
     """
     Recommends top_n movies similar to the given movie title based on cosine similarity.
+    
+    Parameters:
+    - movie_title_encoded: Encoded title of the movie to find recommendations for.
+    - similarity_matrix: Matrix containing cosine similarity scores between movies.
+    - movie_titles: List of movie titles in the dataset.
+    - top_n: Number of top recommendations to return.
+    
+    Returns:
+    - List of recommended movie titles.
     """
     # Find the index of the encoded movie title
     movie_indices = np.where(movie_titles == movie_title_encoded)[0]
@@ -28,57 +34,85 @@ def recommend_movies(movie_title_encoded, similarity_matrix, movie_titles, top_n
         print(f"Encoded title '{movie_title_encoded}' not found in movie titles.")
         return []
     
+    # Retrieve similarity scores for the target movie and sort to find top matches
     movie_idx = movie_indices[0]
     similar_movies = sorted(
         list(enumerate(similarity_matrix[movie_idx])),
         key=lambda x: x[1],
         reverse=True
     )
-    recommendations = [movie_titles[i[0]] for i in similar_movies[1:top_n+1]]  # Skip the first item (itself)
+    
+    # Exclude the first item (itself) and get the top_n recommendations
+    recommendations = [movie_titles[i[0]] for i in similar_movies[1:top_n+1]]
     return recommendations
 
 def get_encoded_title_by_features(genre, language, release_years, movies_df):
     """
     Fetches movies by matching Genre, Language, and Release Year.
+    
+    Parameters:
+    - genre: The genre to filter by.
+    - language: The language to filter by.
+    - release_years: List of release years to filter by.
+    - movies_df: DataFrame containing the movies dataset.
+    
+    Returns:
+    - Array of titles that match the specified feature values or a message if none are found.
     """
+    # Filter movies based on genre, language, and release year criteria
     filtered_movies = movies_df[
         (movies_df['Primary_Genre'] == genre) &
         (movies_df['Original_Language_Full'] == language) &
         (movies_df['Release_Year'].isin(release_years))
     ]
+    
+    # Return titles or an error message if none match
     return filtered_movies['Title'].values if not filtered_movies.empty else "No movie found with the specified feature values."
 
-# Example usage
+# Example usage: defining criteria for recommendations
 genre_input = 'Action'
 language_input = 'English'
 release_year_input = [2019, 2020]
 
+# Get encoded titles based on selected features
 encoded_titles = get_encoded_title_by_features(genre_input, language_input, release_year_input, movies)
 
 if isinstance(encoded_titles, np.ndarray) and encoded_titles.size > 0:
+    # Randomly select one title for further recommendation
     selected_title = random.choice(encoded_titles)
     print("Selected Encoded Title:", selected_title)
 
-    # Get recommendations
+    # Get recommendations based on the selected title
     recommended_movies = recommend_movies(selected_title, similarity_matrix, movie_titles, top_n=10)
     print("Recommended Movies:", recommended_movies)
 
     def get_specific_movie_details_by_encoded_title(title_encoded, movies_df, columns):
         """
         Retrieves specific details for a movie by its encoded title.
+        
+        Parameters:
+        - title_encoded: The encoded title of the movie to fetch details for.
+        - movies_df: DataFrame containing the movies dataset.
+        - columns: List of columns to retrieve for the movie details.
+        
+        Returns:
+        - Series of specific movie details or None if the movie is not found.
         """
+        # Filter the DataFrame to get the row corresponding to the encoded title
         movie_details = movies_df[movies_df['Title'] == title_encoded]
         return movie_details[columns].iloc[0] if not movie_details.empty else None
     
     seen_movies_file = 'seen_movies.txt'
 
     try:
+        # Read previously seen movies from the file
         with open(seen_movies_file, 'r') as file:
             seen_movies = set(file.read().splitlines())
     except FileNotFoundError:
+        # Initialize as an empty set if file does not exist
         seen_movies = set()
 
-    # Filter out seen movies from the recommendations
+    # Filter out movies already seen from the recommendations
     unseen_movies = [movie for movie in recommended_movies if movie not in seen_movies]
 
     # Check if there are unseen movies left
@@ -86,8 +120,10 @@ if isinstance(encoded_titles, np.ndarray) and encoded_titles.size > 0:
         # Randomly select one unseen movie
         selected_movie = random.choice(unseen_movies)
 
-        # Get the movie details
+        # Define columns to retrieve movie details
         columns_to_retrieve = ['Title', 'Overview', 'Release_Year', 'Genre', 'Vote_Average', 'Poster_Url']
+        
+        # Get the movie details
         movie_info = get_specific_movie_details_by_encoded_title(selected_movie, movies, columns_to_retrieve)
 
         # Print the specific movie details
@@ -102,7 +138,7 @@ if isinstance(encoded_titles, np.ndarray) and encoded_titles.size > 0:
             print(f"Poster URL: {movie_info['Poster_Url']}")
             print("=" * 40 + "\n")
 
-            # Mark this movie as seen
+            # Mark this movie as seen by adding it to the set
             seen_movies.add(selected_movie)
 
             # Save the updated seen movies to the file
