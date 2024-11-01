@@ -3,10 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import DBSCAN
 import random
-import re
 
-# Load the movies data (correcting the path)
-movies = pd.read_csv("movies.csv", lineterminator='\n')
 
 # Function to extract year from the Release_Date column
 def extract_years(df):
