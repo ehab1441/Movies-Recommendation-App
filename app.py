@@ -7,10 +7,12 @@ from Recommendation_System import (
     get_encoded_title_by_features,
     get_specific_movie_details_by_encoded_title,
 )
+from Cleaning import pipeline
 
 # Load the movies data
 movies = pd.read_csv('movies_data.csv', lineterminator='\n')
-movies['Primary_Genre'].fillna(movies['Genre_First_Word'], inplace=True)
+
+movies = pipeline(movies)
 
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
 similarity_matrix = cosine_similarity(X)
