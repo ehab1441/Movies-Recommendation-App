@@ -4,8 +4,8 @@ import random
 from sklearn.metrics.pairwise import cosine_similarity
 from Recommendation_System import (
     recommend_movies,
-    get_encoded_title_by_features,
-    get_specific_movie_details_by_encoded_title,
+    get_title_by_features,
+    get_specific_movie_details_by_title,
 )
 from Cleaning import pipeline
 
