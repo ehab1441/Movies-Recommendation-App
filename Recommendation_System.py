@@ -7,7 +7,7 @@ import random
 import re
 
 # Load the movies data (correcting the path)
-movies = pd.read_csv(r"movies_data.csv", lineterminator='\n')
+movies = pd.read_csv("movies.csv", lineterminator='\n')
 
 # Preparing data for similarity calculation
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
