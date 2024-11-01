@@ -43,6 +43,7 @@ def get_era_years(era_input):
     era_end = era_start + 9
     return list(range(era_start, era_end + 1))
 
+era_input = int(era_input)
 # Get the decade years based on selected era
 years = get_era_years(era_input)
 
