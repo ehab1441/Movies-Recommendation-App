@@ -10,7 +10,7 @@ from Recommendation_System import (
 from Cleaning import pipeline
 
 # Load the movies data
-movies = pd.read_csv('movies_data.csv', lineterminator='\n')
+movies = pd.read_csv('movies.csv', lineterminator='\n')
 
 movies = pipeline(movies)
 
