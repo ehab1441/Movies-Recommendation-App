@@ -4,11 +4,11 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import DBSCAN
 import random
-
+from Cleaning import pipeline
 
 # Load the movies data (correcting the path)
 movies = pd.read_csv("movies.csv", lineterminator='\n')
-
+movies = pipeline(movies)
 # Preparing data for similarity calculation
 X = movies[['Genre_Encoded', 'Language_Encoded', 'Release_Year', 'Vote_Count', 'Vote_Average', 'Popularity']]
 similarity_matrix = cosine_similarity(X)
