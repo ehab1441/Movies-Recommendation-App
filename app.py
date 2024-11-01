@@ -31,7 +31,7 @@ st.write("Get movie recommendations based on your preferences!")
 # Input for user preferences
 genre = st.selectbox("Select a genre", movies['Primary_Genre'].unique())
 language = st.selectbox("Select a language", movies['Original_Language_Full'].unique())
-era_input = st.selectbox("Select Era", movies['Release_Era'].unique().sort())
+era_input = st.selectbox("Select Era", sorted(movies['Release_Era'].unique()))
 
 def get_era_years(era_input):
     """
