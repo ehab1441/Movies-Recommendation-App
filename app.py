@@ -51,7 +51,7 @@ years = get_era_years(era_input)
 # Button to trigger movie recommendations
 if st.button("Recommend a movie"):
     # Find encoded titles that match user selections
-    encoded_titles = get_encoded_title_by_features(
+    encoded_titles = get_title_by_features(
         genre,
         language,
         years,
@@ -68,7 +68,7 @@ if st.button("Recommend a movie"):
         if recommended_movies:
             # Retrieve and display details for the selected movie
             columns_to_retrieve = ['Title', 'Overview', 'Release_Year', 'Genre', 'Vote_Average', 'Poster_Url']
-            movie_info = get_specific_movie_details_by_encoded_title(selected_movie_title, movies, columns_to_retrieve)
+            movie_info = get_specific_movie_details_by_title(selected_movie_title, movies, columns_to_retrieve)
 
             st.image(movie_info['Poster_Url'])
             st.subheader(f"🎬 {movie_info['Title']}")
